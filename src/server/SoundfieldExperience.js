@@ -12,7 +12,7 @@ export default class SoundfieldExperience extends Experience {
   /**
    * @param {Array} clientTypes - The client types the experience should be binded.
    */
-  constructor(clientTypes) {
+  constructor(clientTypes, conductor) {
     super(clientTypes);
 
     /**
@@ -27,26 +27,31 @@ export default class SoundfieldExperience extends Experience {
      */
     this.activePlayers = new Set();
 
-    // the `shared-config` service is used by the `soloist` clients to get
-    // informations from the server configuration
     this.sharedConfig = this.require('shared-config');
-    // this instruction adds the sharing of the `setup` entry of the server
-    // configuration as a requirement for `soloist`
     this.sharedConfig.share('setup', 'soloist');
     this.area = this.sharedConfig.get('setup.area');
     this.inputRadius = this.sharedConfig.get('setup.radius');
 
-    // the `locator` service is required by the `player` clients to get their
-    // approximative position into the defined area
     this.locator = this.require('locator');
 
     this.leap = this.require('leap');
 
+    this.sharedParams = this.require('shared-params');
+
     this.onInputChange = this.onInputChange.bind(this);
+    this.toggleRecording = this.toggleRecording.bind(this);
+  }
+
+  toggleRecording(value) {
+    if (value === 'start')
+      this.startRecording();
+    else if (value === 'stop')
+      this.stopRecording();
   }
 
   start() {
     this.leap.addListener(this.onInputChange);
+    this.sharedParams.addParamListener('record', this.toggleRecording);
   }
 
   enter(client) {

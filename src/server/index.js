@@ -6,6 +6,16 @@ import SoundfieldExperience from './SoundfieldExperience';
 // import leap service
 import '../common/service/Leap';
 
+class ConductorExperience extends soundworks.Experience {
+  constructor() {
+    super('conductor');
+
+    this.sharedParams = this.require('shared-params');
+    // this.sharedParams.addText('numPlayers', 'num players', 0, ['conductor']);
+    this.sharedParams.addEnum('record', 'record', ['start', 'stop'], 'stop');
+  }
+}
+
 // sets the size of the area, orther setup informations are not needed
 const setup = {
   area: { height: 5, width: 8 },
@@ -28,6 +38,7 @@ soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) =>
 });
 
 // create the common server experience for both the soloists and the players
+const conductor = new ConductorExperience();
 const soundfieldExperience = new SoundfieldExperience(['player', 'soloist']);
 
 // start the application
