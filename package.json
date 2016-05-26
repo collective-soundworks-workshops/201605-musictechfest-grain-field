@@ -23,6 +23,7 @@
     "babel-runtime": "^6.6.1",
     "debug": "^2.1.2",
     "leapjs": "^0.6.4",
+    "midi": "^0.9.4",
     "soundworks": "collective-soundworks/soundworks.git#v1.1.0",
     "source-map-support": "^0.4.0"
   },

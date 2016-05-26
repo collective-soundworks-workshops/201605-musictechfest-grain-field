@@ -1,4 +1,7 @@
 import { Experience } from 'soundworks/server';
+import midi from 'midi';
+import { exec } from 'child_process';
+import fse from 'fs-extra';
 
 /**
  * The `SoundfieldExperience` makes the connection between the `soloist`
@@ -38,20 +41,17 @@ export default class SoundfieldExperience extends Experience {
 
     this.sharedParams = this.require('shared-params');
 
-    this.onInputChange = this.onInputChange.bind(this);
-    this.toggleRecording = this.toggleRecording.bind(this);
-  }
+    this.midiIn = new midi.input();
+    this.midiOut = new midi.output();
 
-  toggleRecording(value) {
-    if (value === 'start')
-      this.startRecording();
-    else if (value === 'stop')
-      this.stopRecording();
+    this.onInputChange = this.onInputChange.bind(this);
+    this.setRecording = this.setRecording.bind(this);
   }
 
   start() {
     this.leap.addListener(this.onInputChange);
-    this.sharedParams.addParamListener('record', this.toggleRecording);
+    this.sharedParams.addParamListener('record', this.setRecording);
+    this.setupMidi();
   }
 
   enter(client) {
@@ -70,6 +70,101 @@ export default class SoundfieldExperience extends Experience {
   exit(client) {
     if (client.type === 'player')
       this.onPlayerExit(client);
+  }
+
+  setupMidi() {
+    let controllerInPortNumber = null;
+    let controllerOutPortNumber = null;
+    const controllerName = this.sharedConfig.get('midiController');
+
+    for (let i = 0; i < this.midiIn.getPortCount(); i++) {
+      if (this.midiIn.getPortName(i) == controllerName) {
+        controllerInPortNumber = i;
+        break;
+      }
+    }
+
+    for (let i = 0; i < this.midiOut.getPortCount(); i++) {
+      if (this.midiOut.getPortName(i) == controllerName) {
+        controllerOutPortNumber = i;
+        break;
+      }
+    }
+
+    if (controllerInPortNumber !== null && controllerOutPortNumber !== null) {
+      this.midiIn.openPort(controllerInPortNumber);
+      this.midiOut.openPort(controllerOutPortNumber);
+      this.useMidi = true;
+
+      this.midiIn.on('message', function(deltaTime, message) {
+        console.log('m:' + message + ' d:' + deltaTime);
+      });
+    } else {
+      console.warn('No midi controller found!');
+      this.useMidi = false;
+    }
+  }
+
+  setRecording(value) {
+    if (value === 'start')
+      this.startRecording();
+    else if (value === 'stop')
+      this.stopRecording();
+  }
+
+  startRecording() {
+    let count = 0;
+    let offset = 0;
+
+    const note = this.sharedConfig.get('baseNote');
+    const steps = this.sharedConfig.get('steps');
+    const recordDuration = this.sharedConfig.get('recordDuration');
+    const recordPeriod = this.sharedConfig.get('recordPeriod');
+
+    this.intervalId = setInterval(() => {
+      const currentStep = (count % steps);
+
+      offset = !currentStep ? steps-1 : -1;
+
+      if (this.useMidi) {
+        this.midiOut.sendMessage([144, note + currentStep, 127]);
+        this.midiOut.sendMessage([128, note + currentStep + offset, 0]);
+      }
+
+      const file = `public/sounds/${currentStep}.mp3`;
+      const command = `rec --clobber -c 1 ${file} trim 0 ${recordDuration}`;
+
+      fse.remove(file, function(err) {
+        if (err)
+          console.error(err);
+
+        exec(command, function(err, stdout, stderr) {
+          if (err) {
+            console.error("rec command failed:", err);
+            return;
+          }
+
+
+        });
+      });
+
+      count++;
+    }, recordPeriod * 1000);
+  }
+
+  stopRecording() {
+    if (this.useMidi) {
+      const note = this.sharedConfig.get('baseNote');
+
+      for (let i = 0; i < this.sharedConfig.get('steps'); i++) {
+        this.midiOut.sendMessage([128, note+i, 0]);
+      };
+
+      this.midiIn.closePort();
+      this.midiOut.closePort();
+    }
+
+    clearInterval(this.intervalId);
   }
 
   /**
