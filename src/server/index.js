@@ -27,6 +27,7 @@ const recordPeriod = 1;
 const recordDuration = 2;
 const baseNote = 44;
 const steps = 8;
+const resamplingVarMax = 1200;
 
 // initialize the server with configuration informations
 soundworks.server.init({
@@ -36,7 +37,8 @@ soundworks.server.init({
   recordPeriod,
   recordDuration,
   baseNote,
-  steps
+  steps,
+  resamplingVarMax
 });
 
 // define the configuration object to be passed to the `.ejs` template
