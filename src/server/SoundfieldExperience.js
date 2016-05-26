@@ -1,4 +1,6 @@
 import { Experience } from 'soundworks/server';
+import midi from 'midi';
+import { exec } from 'child_process';
 
 /**
  * The `SoundfieldExperience` makes the connection between the `soloist`
@@ -43,6 +45,85 @@ export default class SoundfieldExperience extends Experience {
     this.leap = this.require('leap');
 
     this.onInputChange = this.onInputChange.bind(this);
+
+
+    this.midiIn = new midi.input();
+    this.midiOut = new midi.output();
+    this.setupMidi();
+  }
+
+  setupMidi() {
+    let controllerInPortNumber = null;
+    let controllerOutPortNumber = null;
+    const controllerName = this.sharedConfig.get('midiController');
+
+    for (let i = 0; i < this.midiIn.getPortCount(); i++) {
+      if (this.midiIn.getPortName(i) == controllerName) {
+        controllerInPortNumber = i;
+        break;
+      }
+    };
+
+    for (i = 0; i < this.midiOut.getPortCount(); i++) {
+      if (this.midiOut.getPortName(i) == controllerName) {
+        controllerOutPortNumber = i;
+        break;
+      }
+    };
+
+    this.midiIn.on('message', function(deltaTime, message) {
+      console.log('m:' + message + ' d:' + deltaTime);
+    });
+
+    this.midiIn.openPort(controllerInPortNumber);
+    this.midiOut.openPort(controllerOutPortNumber);
+
+    if (controllerInPortNumber === null) {
+      console.warn('No controller input found!');
+    }
+    if (controllerOutPortNumber === null) {
+      console.warn('No controller output found!');
+    }
+  }
+
+  startRecording() {
+    let count = 0;
+    let offset = 0;
+
+    const note = this.sharedConfig.get('baseNote');
+    const steps = this.sharedConfig.get('steps');
+    const recordDuration = this.sharedConfig.get('recordDuration');
+    const recordPeriod = this.sharedConfig.get('recordPeriod');
+
+    setInterval(() => {
+      const currentStep = (count % steps);
+
+      offset = !currentStep ? steps-1 : -1;
+
+      this.midiOut.sendMessage([144, note + currentStep, 127]);
+      this.midiOut.sendMessage([128, note + currentStep + offset, 0]);
+
+      const command = `rec -c 1 public/sounds/${currentStep}.mp3 trim 0 ${recordDuration}`;
+
+      exec(command, function(error, stdout, stderr) {
+        if(error) {
+          console.log("rec command failed:", error);
+        }
+      });
+
+      count++;
+    }, recordPeriod);
+  }
+
+  stopRecording() {
+    const note=this.sharedConfig.get('baseNote');
+
+    for (let i = 0; i < this.sharedConfig.get('steps'); i++) {
+      this.midiOut.sendMessage([128, note+i, 0]);
+    };
+    
+    this.midiIn.closePort();
+    this.midiOut.closePort();
   }
 
   start() {

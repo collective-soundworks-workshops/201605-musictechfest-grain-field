@@ -12,8 +12,22 @@ const setup = {
   radius: 1,
 }
 
+const midiController = 'LPD8';
+const recordPeriod = 1000;
+const recordDuration = 2000;
+const baseNote = 44;
+const steps = 8;
+
 // initialize the server with configuration informations
-soundworks.server.init({ setup, appName: 'Soundfield' });
+soundworks.server.init({ 
+  setup, 
+  appName: 'Soundfield', 
+  midiController, 
+  recordPeriod, 
+  recordDuration, 
+  baseNote, 
+  steps 
+});
 
 // define the configuration object to be passed to the `.ejs` template
 soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) => {
