@@ -1,0 +1,27 @@
+#experience {
+  &.soloist {
+    .background svg .point {
+      fill: #ffffff;
+    }
+
+    .foreground {
+      opacity: 0.5;
+
+      svg {
+        background-color: transparent;
+      }
+
+      .point {
+        fill: $midnight-blue;
+      }
+    }
+  }
+
+  &.player {
+    transition: background-color 400ms;
+
+    &.active {
+      background-color: rgba(255, 255, 255, 0.9);
+    }
+  }
+}
