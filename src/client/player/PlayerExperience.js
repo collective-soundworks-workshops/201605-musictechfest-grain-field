@@ -1,5 +1,5 @@
 import * as soundworks from 'soundworks/client';
-import WhiteNoiseSynth from './WhiteNoiseSynth';
+import Synth from './Synth';
 
 
 // html template used by `View` of the `PlayerExperience`
@@ -10,6 +10,8 @@ const template = `
   </div>
   <div class="section-bottom"></div>
 `;
+
+const files = ['/sounds/mindbox-extract.mp3'];
 
 /**
  * The `PlayerExperience` requires the `players` to give its approximative
@@ -31,9 +33,13 @@ export default class PlayerExperience extends soundworks.Experience {
     //   position of the user in the defined `area`
     this.require('locator');
 
+    this.loader = this.require('loader', { files });
+    // this.scheduler = this.require('scheduler');
+
     // bind methods to the instance to keep a safe `this` in callbacks
     this.onStartMessage = this.onStartMessage.bind(this);
     this.onStopMessage = this.onStopMessage.bind(this);
+    this.onDistanceMessage = this.onDistanceMessage.bind(this);
   }
 
   /**
@@ -44,7 +50,7 @@ export default class PlayerExperience extends soundworks.Experience {
      * The Synthesizer used in the experience.
      * @type {WhiteNoiseSynth}
      */
-    this.synth = new WhiteNoiseSynth();
+    this.synth = new Synth(this.loader.buffers[0]);
 
     // configure and instanciate the view of the experience
     this.viewContent = { center: 'Listen!' };
@@ -68,15 +74,24 @@ export default class PlayerExperience extends soundworks.Experience {
     // setup socket listeners for server messages
     this.receive('start', this.onStartMessage);
     this.receive('stop', this.onStopMessage);
+    this.receive('distance', this.onDistanceMessage);
   }
 
   /**
    * Callback to be executed when receiving the `start` message from the server.
    */
-  onStartMessage() {
+  onStartMessage(normalizedDistance) {
     // start synth and change background color
-    this.synth.start();
+    this.synth.start(normalizedDistance);
     this.view.$el.classList.add('active');
+    const backgroundColor = `rgba(255, 255, 255, ${normalizedDistance})`;
+    this.view.$el.style.backgroundColor = backgroundColor;
+  }
+
+  onDistanceMessage(normalizedDistance) {
+    this.synth.setGain(normalizedDistance);
+    const backgroundColor = `rgba(255, 255, 255, ${normalizedDistance})`;
+    this.view.$el.style.backgroundColor = backgroundColor;
   }
 
   /**

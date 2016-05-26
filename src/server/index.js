@@ -3,13 +3,17 @@ import 'source-map-support/register';
 // import soundworks (server-side) and experience
 import * as soundworks from 'soundworks/server';
 import SoundfieldExperience from './SoundfieldExperience';
-
+// import leap service
+import '../common/service/Leap';
 
 // sets the size of the area, orther setup informations are not needed
-const area = { height: 5, width: 8 };
+const setup = {
+  area: { height: 5, width: 8 },
+  radius: 1,
+}
 
 // initialize the server with configuration informations
-soundworks.server.init({ setup: { area }, appName: 'Soundfield' });
+soundworks.server.init({ setup, appName: 'Soundfield' });
 
 // define the configuration object to be passed to the `.ejs` template
 soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) => {

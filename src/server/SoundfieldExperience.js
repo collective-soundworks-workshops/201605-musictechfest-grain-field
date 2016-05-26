@@ -1,6 +1,4 @@
 import { Experience } from 'soundworks/server';
-import '../common/service/leapmotion'; 
-
 
 /**
  * The `SoundfieldExperience` makes the connection between the `soloist`
@@ -35,6 +33,8 @@ export default class SoundfieldExperience extends Experience {
     // this instruction adds the sharing of the `setup` entry of the server
     // configuration as a requirement for `soloist`
     this.sharedConfig.share('setup', 'soloist');
+    this.area = this.sharedConfig.get('setup.area');
+    this.inputRadius = this.sharedConfig.get('setup.radius');
 
     // the `locator` service is required by the `player` clients to get their
     // approximative position into the defined area
@@ -42,20 +42,15 @@ export default class SoundfieldExperience extends Experience {
 
     this.leap = this.require('leap');
 
-    this.leap.addListener(function(data){
-      console.log(data)
-    })
-
+    this.onInputChange = this.onInputChange.bind(this);
   }
 
-  /**
-   * Function called whenever a client enters its `Experience`. When called, the
-   * given `client` can be assumed to be fully configured.
-   * @param {Client} client
-   */
+  start() {
+    this.leap.addListener(this.onInputChange);
+  }
+
   enter(client) {
     super.enter(client);
-
     // define what to do ccording to the `client` type (i.e. `player` or `soloist`)
     switch (client.type) {
       case 'soloist':
@@ -67,9 +62,6 @@ export default class SoundfieldExperience extends Experience {
     }
   }
 
-  /**
-   * Function called whenever a client exists its `Experience`.
-   */
   exit(client) {
     if (client.type === 'player')
       this.onPlayerExit(client);
@@ -82,11 +74,6 @@ export default class SoundfieldExperience extends Experience {
     // send the list of connected players
     const playerInfos = Array.from(this.players.values())
     this.send(client, 'player:list', playerInfos);
-
-    // listen touch inputs from the `soloist` client
-    this.receive(client, 'input:change', (radius, coordinates) => {
-      this.onInputChange(radius, coordinates);
-    });
   }
 
   /**
@@ -101,9 +88,6 @@ export default class SoundfieldExperience extends Experience {
     this.broadcast('soloist', null, 'player:add', infos);
   }
 
-  /**
-   * Specific `exit` routine for clients of type `player`.
-   */
   onPlayerExit(client) {
     // retrieve stored informations from the client
     const infos = this.players.get(client);
@@ -113,13 +97,6 @@ export default class SoundfieldExperience extends Experience {
     this.broadcast('soloist', null, 'player:remove', infos);
   }
 
-  /**
-   * Format informations the given player in order to be simply comsumed by soloists.
-   * @param {Client} client - The client object.
-   * @return {Object}
-   * @property {Number} id - Unique id of the client.
-   * @property {Array<Number>} coordinates - Coordinates of the client.
-   */
   formatClientInformations(client) {
     return {
       id: client.uuid,
@@ -128,16 +105,8 @@ export default class SoundfieldExperience extends Experience {
     };
   }
 
-  /**
-   * This method is called whenever a `soloist` client send the coordinates of
-   * its touches on the screen.
-   * @param {Number} radius - The radius of the excited zone as defined in the
-   *  client-side `SoloistExperience`.
-   * @param {Array<Array<Number>>} - List of the coordinates (relative to the
-   *  `area`) of the touch events.
-   */
-  onInputChange(radius, coordinates) {
-    const sqrRadius = radius * radius;
+  onInputChange(coordinates) {
+    const radius = this.inputRadius;
     const activePlayers = this.activePlayers;
     const players = new Set(this.players.keys());
 
@@ -151,18 +120,19 @@ export default class SoundfieldExperience extends Experience {
       players.forEach((player) => {
         let inArea = false;
         const isActive = activePlayers.has(player);
+        const distance = this.getDistance(player.coordinates, coordinates);
 
-        for (let id in coordinates) {
-          const center = coordinates[id];
-          inArea = inArea || this.inArea(player.coordinates, center, sqrRadius);
+        if (distance < radius)
+          inArea = true;
 
-          if (inArea) {
-            if (!isActive) {
-              this.send(player, 'start');
-              activePlayers.add(player);
-            }
+        const normalizedDistance = 1 - (distance / radius);
 
-            break;
+        if (inArea) {
+          if (!isActive) {
+            this.send(player, 'start', normalizedDistance);
+            activePlayers.add(player);
+          } else {
+            this.send(player, 'distance', normalizedDistance);
           }
         }
 
@@ -172,22 +142,17 @@ export default class SoundfieldExperience extends Experience {
         }
       });
     }
+
+    this.broadcast('soloist', null, 'leap:simple:coordinates', coordinates);
   }
 
-  /**
-   * Defines if `point` is inside the circle defined by `center` and `sqrRadius`.
-   * The computation is done in squared space in order to save square root
-   * computation on each call.
-   * @param {Array<Number>} point - The x, y coordinates of the point to be tested.
-   * @param {Array<Number>} center - The x, y coordinates of center of the circle.
-   * @param {Number} sqrRadius - The squared radius of the circle.
-   * @return {Boolean} - `true` if point is in the circle, `false` otherwise.
-   */
-  inArea(point, center, sqrRadius) {
-    const x = point[0] - center[0];
-    const y = point[1] - center[1];
+  getDistance(point, center) {
+    const centerX = center[0] * this.area.width;
+    const centerY = center[1] * this.area.height;
+    const x = point[0] - centerX;
+    const y = point[1] - centerY;
     const sqrDistance = x * x + y * y;
 
-    return sqrDistance < sqrRadius;
+    return Math.sqrt(sqrDistance);
   }
 }

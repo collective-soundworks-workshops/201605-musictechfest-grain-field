@@ -71,13 +71,15 @@ export default class SoloistExperience extends soundworks.Experience {
     this.timeoutDelay = 6000;
 
     // bind methods to the instance to keep a safe `this` in callbacks
-    this.onTouchStart = this.onTouchStart.bind(this);
-    this.onTouchMove = this.onTouchMove.bind(this);
-    this.onTouchEnd = this.onTouchEnd.bind(this);
+    // this.onTouchStart = this.onTouchStart.bind(this);
+    // this.onTouchMove = this.onTouchMove.bind(this);
+    // this.onTouchEnd = this.onTouchEnd.bind(this);
 
     this.onPlayerList = this.onPlayerList.bind(this);
     this.onPlayerAdd = this.onPlayerAdd.bind(this);
     this.onPlayerRemove = this.onPlayerRemove.bind(this);
+
+    this.handleLeapInput = this.handleLeapInput.bind(this);
   }
 
   /**
@@ -116,14 +118,16 @@ export default class SoloistExperience extends soundworks.Experience {
     this.receive('player:add', this.onPlayerAdd);
     this.receive('player:remove', this.onPlayerRemove);
 
-    // Add a `TouchSurface` to the area svg. The `TouchSurface` is a helper
-    // which send normalized coordinates on touch events according to the given
-    // `DOMElement`
-    const surface = new TouchSurface(this.interactionsSpace.$svg);
-    // setup listeners to the `TouchSurface` events
-    surface.addListener('touchstart', this.onTouchStart);
-    surface.addListener('touchmove', this.onTouchMove);
-    surface.addListener('touchend', this.onTouchEnd);
+    // // Add a `TouchSurface` to the area svg. The `TouchSurface` is a helper
+    // // which send normalized coordinates on touch events according to the given
+    // // `DOMElement`
+    // const surface = new TouchSurface(this.interactionsSpace.$svg);
+    // // setup listeners to the `TouchSurface` events
+    // surface.addListener('touchstart', this.onTouchStart);
+    // surface.addListener('touchmove', this.onTouchMove);
+    // surface.addListener('touchend', this.onTouchEnd);
+
+    this.receive('leap:simple:coordinates', this.handleLeapInput);
   }
 
   /**
@@ -150,6 +154,13 @@ export default class SoloistExperience extends soundworks.Experience {
     this.playersSpace.deletePoint(playerInfos.id);
   }
 
+  handleLeapInput(coordinates) {
+    if (Object.keys(this.renderedTouches).length === 0)
+      this.createDrawingZone(1, coordinates[0], coordinates[1]);
+    else
+      this.updateDrawingZone(1, coordinates[0], coordinates[1]);
+  }
+
   /**
    * Callback for the `touchstart` event.
    * @param {Number} id - The id of the touch event as given by the browser.
@@ -158,14 +169,14 @@ export default class SoloistExperience extends soundworks.Experience {
    * @param {Number} y - The normalized y coordinate of the touch according to the
    *  listened `DOMElement`.
    */
-  onTouchStart(id, x, y) {
+  createDrawingZone(id, x, y) {
     // define the position according to the area (`x` and `y` are normalized values)
     const area = this.area;
     x = x * area.width;
     y = y * area.height;
 
     // add the coordinates to the ones sended to the server
-    this.touches[id] = [x, y];
+    // this.touches[id] = [x, y];
     this.sendCoordinates();
 
     // defines the radius of excitation in pixels according to the rendered area.
@@ -179,7 +190,7 @@ export default class SoloistExperience extends soundworks.Experience {
 
     // timeout if the `touchend` does not trigger
     clearTimeout(this.timeouts[id]);
-    this.timeouts[id] = setTimeout(() => this.onTouchEnd(id), this.timeoutDelay);
+    this.timeouts[id] = setTimeout(() => this.removeDrawingZone(id), this.timeoutDelay);
   }
 
   /**
@@ -190,17 +201,10 @@ export default class SoloistExperience extends soundworks.Experience {
    * @param {Number} y - The normalized y coordinate of the touch according to the
    *  listened `DOMElement`.
    */
-  onTouchMove(id, x, y) {
+  updateDrawingZone(id, x, y) {
     const area = this.area;
     x = x * area.width;
     y = y * area.height;
-
-    // update values sended to the server
-    const touch = this.touches[id];
-    touch[0] = x;
-    touch[1] = y;
-
-    this.sendCoordinates();
 
     // update the feedback point
     const point = this.renderedTouches[id];
@@ -211,7 +215,7 @@ export default class SoloistExperience extends soundworks.Experience {
 
     // set a new timeout if the `touchend` does not trigger
     clearTimeout(this.timeouts[id]);
-    this.timeouts[id] = setTimeout(() => this.onTouchEnd(id), this.timeoutDelay);
+    this.timeouts[id] = setTimeout(() => this.removeDrawingZone(id), this.timeoutDelay);
   }
 
   /**
@@ -222,7 +226,7 @@ export default class SoloistExperience extends soundworks.Experience {
    * @param {Number} y - The normalized y coordinate of the touch according to the
    *  listened `DOMElement`.
    */
-  onTouchEnd(id) {
+  removeDrawingZone(id) {
     // cancel preventive timeout for this id
     clearTimeout(this.timeouts[id]);
 
@@ -232,8 +236,6 @@ export default class SoloistExperience extends soundworks.Experience {
     // destroy references to this particular touch event
     delete this.touches[id];
     delete this.renderedTouches[id];
-
-    this.sendCoordinates();
   }
 
   /**
