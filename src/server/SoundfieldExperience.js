@@ -1,4 +1,5 @@
 import { Experience } from 'soundworks/server';
+import '../common/service/leapmotion'; 
 
 
 /**
@@ -38,6 +39,13 @@ export default class SoundfieldExperience extends Experience {
     // the `locator` service is required by the `player` clients to get their
     // approximative position into the defined area
     this.locator = this.require('locator');
+
+    this.leap = this.require('leap');
+
+    this.leap.addListener(function(data){
+      console.log(data)
+    })
+
   }
 
   /**
