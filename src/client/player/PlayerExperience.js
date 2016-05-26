@@ -11,7 +11,10 @@ const template = `
   <div class="section-bottom"></div>
 `;
 
+
 const files = ['/sounds/violin.wav'];
+//const files = ['/sounds/mindbox-extract.mp3'];
+const client = soundworks.client;
 
 /**
  * The `PlayerExperience` requires the `players` to give its approximative
@@ -32,9 +35,10 @@ export default class PlayerExperience extends soundworks.Experience {
     // - the `locator` service provide a view asking for the approximative
     //   position of the user in the defined `area`
     this.require('locator');
+    this.require('checkin');
 
+    this.checkin = this.require('checkin');
     this.loader = this.require('loader', { files });
-    // this.scheduler = this.require('scheduler');
 
     this.sharedConfig = this.require('shared-config');
 
@@ -42,7 +46,11 @@ export default class PlayerExperience extends soundworks.Experience {
     this.onStartMessage = this.onStartMessage.bind(this);
     this.onStopMessage = this.onStopMessage.bind(this);
     this.onDistanceMessage = this.onDistanceMessage.bind(this);
+<<<<<<< HEAD
     this.onHeightMessage = this.onHeightMessage.bind(this);
+=======
+    this.onLoadFileMessage = this.onLoadFileMessage.bind(this);
+>>>>>>> 81e87d3f403714d172ef47e83356dd7d93f046ae
   }
 
   /**
@@ -79,6 +87,14 @@ export default class PlayerExperience extends soundworks.Experience {
     this.receive('stop', this.onStopMessage);
     this.receive('distance', this.onDistanceMessage);
     this.receive('height', this.onHeightMessage);
+    this.receive('load:file', this.onLoadFileMessage);
+  }
+
+  onLoadFileMessage(path) {
+    this.loader.load({ file: path }).then(() => {
+      const buffer = this.loader.get('file');
+      this.synth.setBuffer(buffer);
+    });
   }
 
   /**

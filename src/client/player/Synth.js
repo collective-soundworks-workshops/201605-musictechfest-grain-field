@@ -32,12 +32,6 @@ export default class Synth {
     this.engine.periodAbs = 0.01;
     this.engine.durationAbs = 0.2;
     this.engine.positionVar = buffer.duration - 0.2;
-
-    // this.source = audioContext.createOscillator();
-    // this.source.connect(this.output);
-    // this.source.type = 'sine';
-    // this.source.frequency.value = 300;
-    // this.source.start(0);
   }
 
   start(gain) {
@@ -65,5 +59,9 @@ export default class Synth {
 
   setResamplingVar(resamplingVar) {
     this.engine.resamplingVar = resamplingVar;
+  }
+
+  setBuffer(buffer) {
+    this.engine.buffer = buffer;
   }
 }
