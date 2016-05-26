@@ -12,6 +12,7 @@ const template = `
 `;
 
 const files = ['/sounds/mindbox-extract.mp3'];
+const client = soundworks.client;
 
 /**
  * The `PlayerExperience` requires the `players` to give its approximative
@@ -32,14 +33,16 @@ export default class PlayerExperience extends soundworks.Experience {
     // - the `locator` service provide a view asking for the approximative
     //   position of the user in the defined `area`
     this.require('locator');
+    this.require('checkin');
 
+    this.checkin = this.require('checkin');
     this.loader = this.require('loader', { files });
-    // this.scheduler = this.require('scheduler');
 
     // bind methods to the instance to keep a safe `this` in callbacks
     this.onStartMessage = this.onStartMessage.bind(this);
     this.onStopMessage = this.onStopMessage.bind(this);
     this.onDistanceMessage = this.onDistanceMessage.bind(this);
+    this.onLoadFileMessage = this.onLoadFileMessage.bind(this);
   }
 
   /**
@@ -75,6 +78,14 @@ export default class PlayerExperience extends soundworks.Experience {
     this.receive('start', this.onStartMessage);
     this.receive('stop', this.onStopMessage);
     this.receive('distance', this.onDistanceMessage);
+    this.receive('load:file', this.onLoadFileMessage);
+  }
+
+  onLoadFileMessage(path) {
+    this.loader.load({ file: path }).then(() => {
+      const buffer = this.loader.get('file');
+      this.synth.setBuffer(buffer);
+    });
   }
 
   /**

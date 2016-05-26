@@ -32,9 +32,11 @@ export default class SoundfieldExperience extends Experience {
 
     this.sharedConfig = this.require('shared-config');
     this.sharedConfig.share('setup', 'soloist');
+
     this.area = this.sharedConfig.get('setup.area');
     this.inputRadius = this.sharedConfig.get('setup.radius');
 
+    this.checkin = this.require('checkin');
     this.locator = this.require('locator');
 
     this.leap = this.require('leap');
@@ -131,20 +133,24 @@ export default class SoundfieldExperience extends Experience {
         this.midiOut.sendMessage([128, note + currentStep + offset, 0]);
       }
 
-      const file = `public/sounds/${currentStep}.mp3`;
+      const publicPath = `sounds/${currentStep}.mp3`;
+      const file = `public/${publicPath}`;
       const command = `rec --clobber -c 1 ${file} trim 0 ${recordDuration}`;
 
-      fse.remove(file, function(err) {
+      fse.remove(file, (err) => {
         if (err)
           console.error(err);
 
-        exec(command, function(err, stdout, stderr) {
+        exec(command, (err, stdout, stderr) => {
           if (err) {
             console.error("rec command failed:", err);
             return;
           }
 
-
+          for (let player of this.players.keys()) {
+            if ((player.index % steps) === currentStep)
+              this.send(player, 'load:file', publicPath);
+          }
         });
       });
 
@@ -156,9 +162,8 @@ export default class SoundfieldExperience extends Experience {
     if (this.useMidi) {
       const note = this.sharedConfig.get('baseNote');
 
-      for (let i = 0; i < this.sharedConfig.get('steps'); i++) {
+      for (let i = 0; i < this.sharedConfig.get('steps'); i++)
         this.midiOut.sendMessage([128, note+i, 0]);
-      };
 
       this.midiIn.closePort();
       this.midiOut.closePort();

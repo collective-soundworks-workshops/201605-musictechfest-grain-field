@@ -32,12 +32,6 @@ export default class Synth {
     this.engine.periodAbs = 0.01;
     this.engine.durationAbs = 0.2;
     this.engine.positionVar = buffer.duration - 0.2;
-
-    // this.source = audioContext.createOscillator();
-    // this.source.connect(this.output);
-    // this.source.type = 'sine';
-    // this.source.frequency.value = 300;
-    // this.source.start(0);
   }
 
   start(gain) {
@@ -61,5 +55,9 @@ export default class Synth {
     this.output.gain.cancelScheduledValues(now);
     this.output.gain.setValueAtTime(this.output.gain.value, now);
     this.output.gain.linearRampToValueAtTime(gain, now + 0.02);
+  }
+
+  setBuffer(buffer) {
+    this.engine.buffer = buffer;
   }
 }
