@@ -46,11 +46,8 @@ export default class PlayerExperience extends soundworks.Experience {
     this.onStartMessage = this.onStartMessage.bind(this);
     this.onStopMessage = this.onStopMessage.bind(this);
     this.onDistanceMessage = this.onDistanceMessage.bind(this);
-<<<<<<< HEAD
     this.onHeightMessage = this.onHeightMessage.bind(this);
-=======
     this.onLoadFileMessage = this.onLoadFileMessage.bind(this);
->>>>>>> 81e87d3f403714d172ef47e83356dd7d93f046ae
   }
 
   /**
