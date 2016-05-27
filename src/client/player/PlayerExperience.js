@@ -11,7 +11,9 @@ const template = `
   <div class="section-bottom"></div>
 `;
 
-const files = ['/sounds/mindbox-extract.mp3'];
+
+const files = ['/sounds/violin.wav'];
+//const files = ['/sounds/mindbox-extract.mp3'];
 const client = soundworks.client;
 
 /**
@@ -39,10 +41,13 @@ export default class PlayerExperience extends soundworks.Experience {
     this.loader = this.require('loader', { files });
     this.sharedParams = this.require('shared-params');
 
+    this.sharedConfig = this.require('shared-config');
+
     // bind methods to the instance to keep a safe `this` in callbacks
     this.onStartMessage = this.onStartMessage.bind(this);
     this.onStopMessage = this.onStopMessage.bind(this);
     this.onDistanceMessage = this.onDistanceMessage.bind(this);
+    this.onHeightMessage = this.onHeightMessage.bind(this);
     this.onLoadFileMessage = this.onLoadFileMessage.bind(this);
   }
 
@@ -79,6 +84,7 @@ export default class PlayerExperience extends soundworks.Experience {
     this.receive('start', this.onStartMessage);
     this.receive('stop', this.onStopMessage);
     this.receive('distance', this.onDistanceMessage);
+    this.receive('height', this.onHeightMessage);
     this.receive('load:file', this.onLoadFileMessage);
 
     this.sharedParams.addParamListener('periodAbs', (value) => {
@@ -121,6 +127,12 @@ export default class PlayerExperience extends soundworks.Experience {
     this.synth.setGain(normalizedDistance);
     const backgroundColor = `rgba(255, 255, 255, ${normalizedDistance})`;
     this.view.$el.style.backgroundColor = backgroundColor;
+  }
+
+  onHeightMessage(normalizedHeight) {
+    const resamplingVarMax = this.sharedConfig.get('resamplingVarMax');
+    const scaledResamplingVar = normalizedHeight * resamplingVarMax;
+    this.synth.setResamplingVar(scaledResamplingVar);
   }
 
   /**

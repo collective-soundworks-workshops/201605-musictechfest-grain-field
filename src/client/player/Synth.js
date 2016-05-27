@@ -66,6 +66,10 @@ export default class Synth {
     this.output.gain.linearRampToValueAtTime(gain, now + 0.02);
   }
 
+  setResamplingVar(resamplingVar) {
+    this.engine.resamplingVar = resamplingVar;
+  }
+
   setBuffer(buffer) {
     this.engine.position = Math.random() * buffer.duration;
     this.engine.buffer = buffer;

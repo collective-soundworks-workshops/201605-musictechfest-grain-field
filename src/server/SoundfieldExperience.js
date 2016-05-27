@@ -32,6 +32,7 @@ export default class SoundfieldExperience extends Experience {
 
     this.sharedConfig = this.require('shared-config');
     this.sharedConfig.share('setup', 'soloist');
+    this.sharedConfig.share('resamplingVarMax', 'player');
 
     this.area = this.sharedConfig.get('setup.area');
     this.inputRadius = this.sharedConfig.get('setup.radius');
@@ -234,6 +235,7 @@ export default class SoundfieldExperience extends Experience {
           inArea = true;
 
         const normalizedDistance = 1 - (distance / radius);
+        const normalizedHeight = coordinates[2];
 
         if (inArea) {
           if (!isActive) {
@@ -241,6 +243,7 @@ export default class SoundfieldExperience extends Experience {
             activePlayers.add(player);
           } else {
             this.send(player, 'distance', normalizedDistance);
+            this.send(player, 'height', normalizedHeight);
           }
         }
 
