@@ -37,6 +37,7 @@ export default class PlayerExperience extends soundworks.Experience {
 
     this.checkin = this.require('checkin');
     this.loader = this.require('loader', { files });
+    this.sharedParams = this.require('shared-params');
 
     // bind methods to the instance to keep a safe `this` in callbacks
     this.onStartMessage = this.onStartMessage.bind(this);
@@ -79,6 +80,23 @@ export default class PlayerExperience extends soundworks.Experience {
     this.receive('stop', this.onStopMessage);
     this.receive('distance', this.onDistanceMessage);
     this.receive('load:file', this.onLoadFileMessage);
+
+    this.sharedParams.addParamListener('periodAbs', (value) => {
+      this.synth.setPeriodAbs(value);
+    });
+
+    this.sharedParams.addParamListener('durationAbs', (value) => {
+      this.synth.setDurationAbs(value);
+    });
+
+    this.sharedParams.addParamListener('positionVar', (value) => {
+      this.synth.setPositionVar(value);
+    });
+
+    this.sharedParams.addParamListener('gainMult', (value) => {
+      this.synth.setGainMultiplier(value);
+    });
+
   }
 
   onLoadFileMessage(path) {

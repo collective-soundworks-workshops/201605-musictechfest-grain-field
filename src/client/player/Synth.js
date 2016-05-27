@@ -26,12 +26,20 @@ export default class Synth {
     this.output.gain.value = 0;
 
     this.scheduler = audio.getScheduler();
+
+    // this.engines = [];
+
     this.engine = new audio.GranularEngine();
     this.engine.connect(this.output);
-    this.engine.buffer = buffer;
-    this.engine.periodAbs = 0.01;
-    this.engine.durationAbs = 0.2;
-    this.engine.positionVar = buffer.duration - 0.2;
+    // this.engine.periodAbs = 0.1;
+    // // this.engine.periodRel = 0.25;
+    // this.engine.durationAbs = 0.2;
+    // // this.engine.positionVar = buffer.duration - 0.2;
+    // this.engine.positionVar = 0.02;
+
+    // this.currentEngine = 0;
+
+    this.setBuffer(buffer);
   }
 
   start(gain) {
@@ -51,6 +59,7 @@ export default class Synth {
   }
 
   setGain(gain) {
+    gain *= this._gainMultiplier;
     const now = audioContext.currentTime;
     this.output.gain.cancelScheduledValues(now);
     this.output.gain.setValueAtTime(this.output.gain.value, now);
@@ -58,6 +67,23 @@ export default class Synth {
   }
 
   setBuffer(buffer) {
+    this.engine.position = Math.random() * buffer.duration;
     this.engine.buffer = buffer;
+  }
+
+  setPeriodAbs(value) {
+    this.engine.periodAbs = value;
+  }
+
+  setDurationAbs(value) {
+    this.engine.durationAbs = value;
+  }
+
+  setPositionVar(value) {
+    this.engine.positionVar = value;
+  }
+
+  setGainMultiplier(value) {
+    this._gainMultiplier = value;
   }
 }

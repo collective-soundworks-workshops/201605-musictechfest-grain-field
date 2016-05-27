@@ -11,6 +11,11 @@ function bootstrap() {
   // instanciate the experience of the `player`
   const conductor = new soundworks.Conductor();
   conductor.setGuiOptions('record', { type: 'buttons' });
+
+  conductor.setGuiOptions('periodAbs', { type: 'slider' });
+  conductor.setGuiOptions('durationAbs', { type: 'slider' });
+  conductor.setGuiOptions('positionVar', { type: 'slider' });
+  conductor.setGuiOptions('gainMult', { type: 'slider' });
   // start the application
   soundworks.client.start();
 }

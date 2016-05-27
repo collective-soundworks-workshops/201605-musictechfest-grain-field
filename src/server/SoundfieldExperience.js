@@ -191,6 +191,9 @@ export default class SoundfieldExperience extends Experience {
     this.players.set(client, infos);
     // send the informations of the new client to all the connected soloists
     this.broadcast('soloist', null, 'player:add', infos);
+
+    // for testing
+    this.send(client, 'start', 0.7);
   }
 
   onPlayerExit(client) {
