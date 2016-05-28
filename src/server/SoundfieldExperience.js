@@ -193,9 +193,6 @@ export default class SoundfieldExperience extends Experience {
     this.players.set(client, infos);
     // send the informations of the new client to all the connected soloists
     this.broadcast('soloist', null, 'player:add', infos);
-
-    // for testing
-    this.send(client, 'start', 0.7);
   }
 
   onPlayerExit(client) {
@@ -224,7 +221,7 @@ export default class SoundfieldExperience extends Experience {
 
     // if coordinates are empty, stop all players, else defines if a client
     // should be sent a `start` or `stop` message according to its previous
-    // state and if it is or not in an zone that is excited by the soloist
+    // state and if it is or not in an zone that is excited by the soloist.
     if (Object.keys(coordinates).length === 0) {
       activePlayers.forEach((player) => this.send(player, 'stop'));
       activePlayers.clear();

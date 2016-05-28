@@ -13,6 +13,7 @@ class ConductorExperience extends soundworks.Experience {
     this.sharedParams = this.require('shared-params');
     // this.sharedParams.addText('numPlayers', 'num players', 0, ['conductor']);
     this.sharedParams.addEnum('record', 'record', ['start', 'stop'], 'stop');
+    this.sharedParams.addTrigger('endPerformance', 'endPerformance', 'player');
 
     this.sharedParams.addNumber('periodAbs', 'periodAbs', 1, 10, 0.01, 10, 'soloist');
 
