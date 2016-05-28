@@ -130,9 +130,6 @@ export default class PlayerExperience extends soundworks.Experience {
   }
 
   onHeightMessage(normalizedHeight) {
-    const resamplingVarMax = this.sharedConfig.get('resamplingVarMax');
-    const scaledResamplingVar = normalizedHeight * resamplingVarMax;
-    this.synth.setResamplingVar(scaledResamplingVar);
   }
 
   /**
