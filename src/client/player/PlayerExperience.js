@@ -16,6 +16,28 @@ const files = ['/sounds/violin.wav'];
 //const files = ['/sounds/mindbox-extract.mp3'];
 const client = soundworks.client;
 
+// 'pink': '#dd0085',
+// 'red': '#ee0000',
+// 'orange': '#ff7700',
+// 'yellow': '#ffaa00',
+// 'green': '#43af00',
+// 'darkBlue': '#0062e2',
+// 'lightBlue': '#009ed8',
+// 'grey': '#6b7884',
+// 'purple': '#6700f7',
+
+const colors = [
+  '#dd0085',
+  '#ee0000',
+  '#ff7700',
+  '#ffaa00',
+  '#43af00',
+  '#0062e2',
+  '#009ed8',
+  '#6b7884',
+  '#6700f7',
+];
+
 /**
  * The `PlayerExperience` requires the `players` to give its approximative
  * position into the `area` (see `src/server/index`) of the experience.
@@ -44,8 +66,8 @@ export default class PlayerExperience extends soundworks.Experience {
     this.sharedConfig = this.require('shared-config');
 
     // bind methods to the instance to keep a safe `this` in callbacks
-    this.onStartMessage = this.onStartMessage.bind(this);
-    this.onStopMessage = this.onStopMessage.bind(this);
+    // this.onStartMessage = this.onStartMessage.bind(this);
+    this.onEndPerformanceMessage = this.onEndPerformanceMessage.bind(this);
     this.onDistanceMessage = this.onDistanceMessage.bind(this);
     this.onHeightMessage = this.onHeightMessage.bind(this);
     this.onLoadFileMessage = this.onLoadFileMessage.bind(this);
@@ -66,6 +88,9 @@ export default class PlayerExperience extends soundworks.Experience {
     this.viewTemplate = template;
     this.viewCtor = soundworks.SegmentedView;
     this.view = this.createView();
+
+    this.currentColorIndex = null;
+    this.performanceEnded = false;
   }
 
   /**
@@ -103,12 +128,33 @@ export default class PlayerExperience extends soundworks.Experience {
       this.synth.setGainMultiplier(value);
     });
 
+    this.sharedParams.addParamListener('endPerformance', () => {
+      this.onEndPerformanceMessage();
+    });
   }
 
   onLoadFileMessage(path) {
+    if (this.performanceEnded) { return; }
+
     this.loader.load({ file: path }).then(() => {
+      if (this.performanceEnded) { return; }
+
       const buffer = this.loader.get('file');
       this.synth.setBuffer(buffer);
+
+      if (!this.synth.hasStarted)
+        this.synth.start();
+
+      // pick a new color
+      let newColorIndex = Math.floor(Math.random() * colors.length);
+      while (newColorIndex === this.currentColorIndex)
+        newColorIndex  = Math.floor(Math.random() * colors.length);
+
+      const backgroundColor = colors[newColorIndex];
+      this.view.$el.style.backgroundColor = backgroundColor;
+      this.currentColorIndex = newColorIndex;
+    }).catch((err) => {
+      console.error(err.stack);
     });
   }
 
@@ -116,31 +162,26 @@ export default class PlayerExperience extends soundworks.Experience {
    * Callback to be executed when receiving the `start` message from the server.
    */
   onStartMessage(normalizedDistance) {
-    // start synth and change background color
-    this.synth.start(normalizedDistance);
-    this.view.$el.classList.add('active');
-    const backgroundColor = `rgba(255, 255, 255, ${normalizedDistance})`;
-    this.view.$el.style.backgroundColor = backgroundColor;
+
+  }
+
+  onStopMessage() {
+
   }
 
   onDistanceMessage(normalizedDistance) {
-    this.synth.setGain(normalizedDistance);
-    const backgroundColor = `rgba(255, 255, 255, ${normalizedDistance})`;
-    this.view.$el.style.backgroundColor = backgroundColor;
+
   }
 
   onHeightMessage(normalizedHeight) {
-    const resamplingVarMax = this.sharedConfig.get('resamplingVarMax');
-    const scaledResamplingVar = normalizedHeight * resamplingVarMax;
-    this.synth.setResamplingVar(scaledResamplingVar);
+
   }
 
-  /**
-   * Callback to be executed when receiving the `stop` message from the server.
-   */
-  onStopMessage() {
-    // stop synth and change background color
-    this.synth.stop();
-    this.view.$el.classList.remove('active');
+  // end of the performance
+  onEndPerformanceMessage() {
+    this.performanceEnded = true;
+    const releaseTime = this.synth.stop();
+    this.view.$el.style.transition = `background-color ${releaseTime}s`;
+    this.view.$el.style.backgroundColor = 'transparent';
   }
 }
