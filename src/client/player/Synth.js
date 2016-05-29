@@ -23,14 +23,13 @@ export default class Synth {
   constructor() {
     this.output = audioContext.createGain();
     this.output.connect(audioContext.destination);
-    this.output.gain.value = 1;
 
     this.scheduler = audio.getScheduler();
 
     this.engines = [];
     for (let index = 0; index < 2; index++) {
       const env = audioContext.createGain();
-      env.connect(audioContext.destination);
+      env.connect(this.output);
       env.gain.value = 0;
 
       const engine = new audio.GranularEngine();
@@ -42,19 +41,14 @@ export default class Synth {
     this.currentIndex = 0;
     this.crossFadeDuration = 2;
     this.hasStarted = false;
+    this.currentPosition = Math.random();
 
     this.setBuffer = this.setBuffer.bind(this);
+
+    this.resamplingValues = [0, 1200, 2400, 3600, 4800];
   }
 
-  start(gain) {
-    // const now = audioContext.currentTime;
-    // const { env, engine, inScheduler } = this.engines[this.currentIndex];
-
-    // // this.scheduler.add(engine);
-    // env.gain.cancelScheduledValues(now);
-    // env.gain.setValueAtTime(env.gain.value, now);
-    // env.gain.linearRampToValueAtTime(gain, now + 0.02);
-
+  start() {
     this.hasStarted = true;
   }
 
@@ -94,7 +88,7 @@ export default class Synth {
     prevEnv.gain.linearRampToValueAtTime(0, now + this.crossFadeDuration);
 
     this.scheduler.add(nextEngine);
-    nextEngine.position = Math.random() * buffer.duration;
+    nextEngine.position = this.currentPosition * buffer.duration;
     nextEngine.buffer = buffer;
 
     nextEnv.gain.cancelScheduledValues(now);
@@ -108,39 +102,50 @@ export default class Synth {
     }, (this.crossFadeDuration + 0.5) * 1000);
   }
 
-  setGain(gain) {
-    // gain *= this._gainMultiplier;
-    // const now = audioContext.currentTime;
-    // this.output.gain.cancelScheduledValues(now);
-    // this.output.gain.setValueAtTime(this.output.gain.value, now);
-    // this.output.gain.linearRampToValueAtTime(gain, now + 0.02);
+  // roll
+  setPositionFromRoll(normValue) {
+    const { engine } = this.engines[this.currentIndex];
+    const buffer = engine.buffer;
+    this.currentNormPosition = normValue;
+
+    if (buffer)
+      engine.position = normValue * buffer.duration;
+  }
+
+  // pitch
+  setResamplingVarFromPitch(value) {
+    const { engine } = this.engines[this.currentIndex];
+    engine.resamplingVar = value * 100;
   }
 
   setResamplingVar(resamplingVar) {
-    this.engines.forEach((engine) => {
-      engine.engine.resamplingVar = resamplingVar;
+    this.engines.forEach((entry) => {
+      entry.engine.resamplingVar = resamplingVar;
     });
   }
 
   setPeriodAbs(value) {
-    this.engines.forEach((engine) => {
-      engine.engine.periodAbs = value;
+    this.engines.forEach((entry) => {
+      entry.engine.periodAbs = value;
     });
   }
 
   setDurationAbs(value) {
-    this.engines.forEach((engine) => {
-      engine.engine.durationAbs = value;
+    this.engines.forEach((entry) => {
+      entry.engine.durationAbs = value;
     });
   }
 
   setPositionVar(value) {
-    this.engines.forEach((engine) => {
-      engine.engine.positionVar = value;
+    this.engines.forEach((entry) => {
+      entry.engine.positionVar = value;
     });
   }
 
-  setGainMultiplier(value) {
-    this._gainMultiplier = value;
+  setGain(gain) {
+    const now = audioContext.currentTime;
+    this.output.gain.cancelScheduledValues(now);
+    this.output.gain.setValueAtTime(this.output.gain.value, now);
+    this.output.gain.linearRampToValueAtTime(gain, now + 0.02);
   }
 }

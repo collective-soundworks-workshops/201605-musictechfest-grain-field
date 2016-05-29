@@ -1,5 +1,8 @@
 import * as soundworks from 'soundworks/client';
 import Synth from './Synth';
+import BeatSynth from './BeatSynth';
+import MovingAverage from './MovingAverage';
+import throttle from 'lodash.throttle';
 
 
 // html template used by `View` of the `PlayerExperience`
@@ -12,30 +15,20 @@ const template = `
 `;
 
 
-const files = ['/sounds/violin.wav'];
+const files = ['/sounds/beats-hh.wav', '/sounds/beats-sd.wav'];
 //const files = ['/sounds/mindbox-extract.mp3'];
 const client = soundworks.client;
 
-// 'pink': '#dd0085',
-// 'red': '#ee0000',
-// 'orange': '#ff7700',
-// 'yellow': '#ffaa00',
-// 'green': '#43af00',
-// 'darkBlue': '#0062e2',
-// 'lightBlue': '#009ed8',
-// 'grey': '#6b7884',
-// 'purple': '#6700f7',
-
 const colors = [
-  '#dd0085',
-  '#ee0000',
-  '#ff7700',
-  '#ffaa00',
-  '#43af00',
-  '#0062e2',
-  '#009ed8',
-  '#6b7884',
-  '#6700f7',
+  '#dd0085', // 'pink'
+  '#ee0000', // 'red'
+  '#ff7700', // 'orange'
+  '#ffaa00', // 'yellow'
+  '#43af00', // 'green'
+  '#0062e2', // 'darkBlue'
+  '#009ed8', // 'lightBlue'
+  '#6b7884', // 'grey'
+  '#6700f7', // 'purple'
 ];
 
 /**
@@ -65,12 +58,20 @@ export default class PlayerExperience extends soundworks.Experience {
 
     this.sharedConfig = this.require('shared-config');
 
+    this.syncScheduler = this.require('scheduler');
+    this.sync = this.require('sync');
+
+    this.motionInput = this.require('motion-input', {
+      descriptors: ['accelerationIncludingGravity'],
+    });
+
     // bind methods to the instance to keep a safe `this` in callbacks
-    // this.onStartMessage = this.onStartMessage.bind(this);
+    this.onStartMessage = this.onStartMessage.bind(this);
     this.onEndPerformanceMessage = this.onEndPerformanceMessage.bind(this);
     this.onDistanceMessage = this.onDistanceMessage.bind(this);
-    this.onHeightMessage = this.onHeightMessage.bind(this);
+    // this.onHeightMessage = this.onHeightMessage.bind(this);
     this.onLoadFileMessage = this.onLoadFileMessage.bind(this);
+    this.processAccelerationData = throttle(this.processAccelerationData.bind(this), 50);
   }
 
   /**
@@ -81,7 +82,8 @@ export default class PlayerExperience extends soundworks.Experience {
      * The Synthesizer used in the experience.
      * @type {WhiteNoiseSynth}
      */
-    this.synth = new Synth(this.loader.buffers[0]);
+    this.synth = new Synth();
+    this.beatSynth = new BeatSynth(this.sync, this.sharedConfig.get('bpm'), this.loader.buffers[0], this.loader.buffers[1]);
 
     // configure and instanciate the view of the experience
     this.viewContent = { center: 'Listen!' };
@@ -91,6 +93,9 @@ export default class PlayerExperience extends soundworks.Experience {
 
     this.currentColorIndex = null;
     this.performanceEnded = false;
+
+    this.positionFilter = new MovingAverage(4);
+    this.cutoffFilter = new MovingAverage(8);
   }
 
   /**
@@ -125,12 +130,39 @@ export default class PlayerExperience extends soundworks.Experience {
     });
 
     this.sharedParams.addParamListener('gainMult', (value) => {
-      this.synth.setGainMultiplier(value);
+      this.synth.setGain(value);
+      this.beatSynth.setGainMultiplier(value);
     });
 
     this.sharedParams.addParamListener('endPerformance', () => {
       this.onEndPerformanceMessage();
     });
+
+    this.motionInput.addListener('accelerationIncludingGravity', this.processAccelerationData);
+
+    // @todo - move this in `onStartMessage`
+    this.syncScheduler.add(this.beatSynth);
+    this.beatSynth.setGain(1);
+  }
+
+  processAccelerationData(data) {
+    const acc = { x: data[0], y: data[1], z: data[2] };
+    const pitch = -2 * Math.atan(acc.y / Math.sqrt(acc.z * acc.z + acc.x * acc.x)) / Math.PI;
+    const roll = -2 * Math.atan(acc.x / Math.sqrt(acc.y * acc.y + acc.z * acc.z)) / Math.PI;
+
+    let normRoll = 0.5 * roll;
+    let normPitch = 1 + pitch;
+
+    normRoll = this.positionFilter.process(normRoll);
+    normPitch = 1 - this.cutoffFilter.process(normPitch);
+
+    normRoll = Math.min(1, Math.max(0, normRoll)); // rotation around y axis
+    normPitch = Math.min(1, Math.max(0, normPitch));
+
+    this.synth.setPositionFromRoll(normRoll);
+    this.synth.setResamplingVarFromPitch(normPitch);
+
+    this.beatSynth.setCutoff(normPitch);
   }
 
   onLoadFileMessage(path) {
@@ -158,23 +190,17 @@ export default class PlayerExperience extends soundworks.Experience {
     });
   }
 
-  /**
-   * Callback to be executed when receiving the `start` message from the server.
-   */
   onStartMessage(normalizedDistance) {
-
+    this.syncScheduler.add(this.beatSynth);
+    this.beatSynth.setGain(normalizedDistance);
   }
 
   onStopMessage() {
-
+    this.syncScheduler.remove(this.beatSynth);
   }
 
   onDistanceMessage(normalizedDistance) {
-
-  }
-
-  onHeightMessage(normalizedHeight) {
-
+    this.beatSynth.setGain(normalizedDistance);
   }
 
   // end of the performance

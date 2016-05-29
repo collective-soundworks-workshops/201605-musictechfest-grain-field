@@ -30,19 +30,18 @@ export default class SoundfieldExperience extends Experience {
      */
     this.activePlayers = new Set();
 
+    this.sharedParams = this.require('shared-params');
+    this.checkin = this.require('checkin');
+    this.locator = this.require('locator');
+    this.sync = this.require('sync');
+    this.leap = this.require('leap');
+
     this.sharedConfig = this.require('shared-config');
     this.sharedConfig.share('setup', 'soloist');
     this.sharedConfig.share('resamplingVarMax', 'player');
-
+    this.sharedConfig.share('bpm', 'player');
     this.area = this.sharedConfig.get('setup.area');
     this.inputRadius = this.sharedConfig.get('setup.radius');
-
-    this.checkin = this.require('checkin');
-    this.locator = this.require('locator');
-
-    this.leap = this.require('leap');
-
-    this.sharedParams = this.require('shared-params');
 
     this.midiIn = new midi.input();
     this.midiOut = new midi.output();
