@@ -114,7 +114,7 @@ export default class PlayerExperience extends soundworks.Experience {
     this.receive('start', this.onStartMessage);
     this.receive('stop', this.onStopMessage);
     this.receive('distance', this.onDistanceMessage);
-    this.receive('height', this.onHeightMessage);
+    // this.receive('height', this.onHeightMessage);
     this.receive('load:file', this.onLoadFileMessage);
 
     this.sharedParams.addParamListener('periodAbs', (value) => {
@@ -202,6 +202,10 @@ export default class PlayerExperience extends soundworks.Experience {
   onDistanceMessage(normalizedDistance) {
     this.beatSynth.setGain(normalizedDistance);
   }
+
+  // onHeightMessage(normalizedHeight) {
+
+  // }
 
   // end of the performance
   onEndPerformanceMessage() {

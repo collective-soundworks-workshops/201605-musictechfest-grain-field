@@ -37,18 +37,18 @@ export default class BeatSynth extends audio.TimeEngine {
 
     this.score = [
       ['hh', 'sd'],
-      [0, 'hh'],
-      [0, 'sd'],
-      [0, 'hh'],
+      ['sd', 'hh'],
+      ['hh', 'sd'],
+      ['sd', 'hh'],
     ];
 
     this.beatPeriod = 60 / bpm;
     this.barPeriod = this.score.length;
 
     // metro config
-    this.clickAttack = 0.002;
+    this.clickAttack = 0.001;
     this.clickRelease = 0.098;;
-    // this.buffer = createBufferSource();
+    this.whiteNoiseBuffer = createBufferSource();
   }
 
   setGain(gain) {
@@ -70,20 +70,24 @@ export default class BeatSynth extends audio.TimeEngine {
   }
 
   trigger(time, bufferId) {
+    if (Math.random() <= 0.3) return;
+
     const buffer = this.buffers[bufferId];
+    // const buffer = this.whiteNoiseBuffer;
     const clickAttack = this.clickAttack;
     const clickRelease = this.clickRelease;
-
     const env = audioContext.createGain();
+
     if (bufferId === 'hh')
       env.connect(this.lowpass);
     else
       env.connect(this.output);
-    env.gain.value = 0.0;
-    env.gain.setValueAtTime(0, time);
-    env.gain.linearRampToValueAtTime(1.0, time + clickAttack);
-    env.gain.exponentialRampToValueAtTime(0.0000001, time + clickAttack + clickRelease);
-    env.gain.setValueAtTime(0, time);
+
+    // env.gain.value = 0.0;
+    // env.gain.setValueAtTime(0, time);
+    // env.gain.linearRampToValueAtTime(1.0, time + clickAttack);
+    // env.gain.exponentialRampToValueAtTime(0.0000001, time + clickAttack + clickRelease);
+    // env.gain.setValueAtTime(0, time);
 
     const src = audioContext.createBufferSource();
     src.connect(env);

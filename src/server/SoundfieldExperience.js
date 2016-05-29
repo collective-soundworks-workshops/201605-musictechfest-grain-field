@@ -42,6 +42,7 @@ export default class SoundfieldExperience extends Experience {
     this.sharedConfig.share('bpm', 'player');
     this.area = this.sharedConfig.get('setup.area');
     this.inputRadius = this.sharedConfig.get('setup.radius');
+    this.areaMaxFactor = (this.area.width > this.area.height ? this.area.width : this.area.height) / 1.7;
 
     this.midiIn = new midi.input();
     this.midiOut = new midi.output();
@@ -65,6 +66,7 @@ export default class SoundfieldExperience extends Experience {
         break;
       case 'player':
         this.onPlayerEnter(client);
+            this.sharedParams.update('numPlayers', this.clients.length);
         break;
     }
   }
@@ -72,6 +74,8 @@ export default class SoundfieldExperience extends Experience {
   exit(client) {
     if (client.type === 'player')
       this.onPlayerExit(client);
+
+    this.sharedParams.update('numPlayers', this.clients.length);
   }
 
   setupMidi() {
@@ -211,7 +215,9 @@ export default class SoundfieldExperience extends Experience {
   }
 
   onInputChange(coordinates) {
-    const radius = this.inputRadius;
+    let radius = this.inputRadius;
+    radius *= coordinates[2] * this.areaMaxFactor;
+
     const activePlayers = this.activePlayers;
     const players = new Set(this.players.keys());
 
@@ -239,7 +245,7 @@ export default class SoundfieldExperience extends Experience {
             activePlayers.add(player);
           } else {
             this.send(player, 'distance', normalizedDistance);
-            this.send(player, 'height', normalizedHeight);
+            //this.send(player, 'height', normalizedHeight);
           }
         }
 
@@ -250,7 +256,7 @@ export default class SoundfieldExperience extends Experience {
       });
     }
 
-    this.broadcast('soloist', null, 'leap:simple:coordinates', coordinates);
+    this.broadcast('soloist', null, 'leap:simple:coordinates', coordinates, radius);
   }
 
   getDistance(point, center) {

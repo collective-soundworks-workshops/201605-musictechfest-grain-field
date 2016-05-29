@@ -10,6 +10,7 @@ function bootstrap() {
   soundworks.client.init(clientType, { socketIO, appName });
   // instanciate the experience of the `player`
   const conductor = new soundworks.Conductor();
+
   conductor.setGuiOptions('record', { type: 'buttons' });
   conductor.setGuiOptions('endPerformance', { confirm: true });
 

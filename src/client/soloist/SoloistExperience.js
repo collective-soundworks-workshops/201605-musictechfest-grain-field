@@ -87,6 +87,7 @@ export default class SoloistExperience extends soundworks.Experience {
    */
   init() {
     this.area = this.sharedConfig.get('setup.area');
+    this.area.background = undefined;
     // initialize the view of the experience
     this.viewTemplate = viewTemplate;
     this.viewCtor = View;
@@ -154,11 +155,11 @@ export default class SoloistExperience extends soundworks.Experience {
     this.playersSpace.deletePoint(playerInfos.id);
   }
 
-  handleLeapInput(coordinates) {
+  handleLeapInput(coordinates, radius) {
     if (Object.keys(this.renderedTouches).length === 0)
-      this.createDrawingZone(1, coordinates[0], coordinates[1]);
+      this.createDrawingZone(1, coordinates[0], coordinates[1], radius);
     else
-      this.updateDrawingZone(1, coordinates[0], coordinates[1]);
+      this.updateDrawingZone(1, coordinates[0], coordinates[1], radius);
   }
 
   /**
@@ -169,7 +170,7 @@ export default class SoloistExperience extends soundworks.Experience {
    * @param {Number} y - The normalized y coordinate of the touch according to the
    *  listened `DOMElement`.
    */
-  createDrawingZone(id, x, y) {
+  createDrawingZone(id, x, y, radius) {
     // define the position according to the area (`x` and `y` are normalized values)
     const area = this.area;
     x = x * area.width;
@@ -180,9 +181,11 @@ export default class SoloistExperience extends soundworks.Experience {
     this.sendCoordinates();
 
     // defines the radius of excitation in pixels according to the rendered area.
-    const radius = (this.radius / area.width) * this.interactionsSpace.areaWidth;
+    radius = (radius / area.width) * this.interactionsSpace.areaWidth;
+
     // create an object to be rendered by the `interactionsSpace`
     const point = { id, x, y, radius };
+
     // keep a reference to the rendered point for update
     this.renderedTouches[id] = point;
     // render the point
@@ -201,7 +204,7 @@ export default class SoloistExperience extends soundworks.Experience {
    * @param {Number} y - The normalized y coordinate of the touch according to the
    *  listened `DOMElement`.
    */
-  updateDrawingZone(id, x, y) {
+  updateDrawingZone(id, x, y, radius) {
     const area = this.area;
     x = x * area.width;
     y = y * area.height;
@@ -210,6 +213,7 @@ export default class SoloistExperience extends soundworks.Experience {
     const point = this.renderedTouches[id];
     point.x = x;
     point.y = y;
+    point.radius = (radius / area.width) * this.interactionsSpace.areaWidth;
 
     this.interactionsSpace.updatePoint(point);
 
