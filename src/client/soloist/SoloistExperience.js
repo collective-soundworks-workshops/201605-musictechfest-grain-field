@@ -155,11 +155,12 @@ export default class SoloistExperience extends soundworks.Experience {
     this.playersSpace.deletePoint(playerInfos.id);
   }
 
-  handleLeapInput(coordinates, radius) {
+  handleLeapInput(coordinates, radius, handType) {
+    console.log(handType)
     if (Object.keys(this.renderedTouches).length === 0)
-      this.createDrawingZone(1, coordinates[0], coordinates[1], radius);
+      this.createDrawingZone(handType, coordinates[0], coordinates[1], radius);
     else
-      this.updateDrawingZone(1, coordinates[0], coordinates[1], radius);
+      this.updateDrawingZone(handType, coordinates[0], coordinates[1], radius);
   }
 
   /**
