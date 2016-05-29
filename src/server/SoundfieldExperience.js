@@ -212,12 +212,17 @@ export default class SoundfieldExperience extends Experience {
     };
   }
 
-  onInputChange(coordinates) {
-    let radius = this.inputRadius;
-    radius *= coordinates[2] * this.areaMaxFactor;
+  onInputChange(hand) {
 
+    let radius = this.inputRadius;
+
+    const coordinates = [hand[0], hand[1], hand[2]];
+    const height = coordinates[2];
+    const handId = hand[3];
     const activePlayers = this.activePlayers;
     const players = new Set(this.players.keys());
+
+    radius *= height * this.areaMaxFactor;
 
     // if coordinates are empty, stop all players, else defines if a client
     // should be sent a `start` or `stop` message according to its previous
@@ -235,7 +240,7 @@ export default class SoundfieldExperience extends Experience {
           inArea = true;
 
         const normalizedDistance = 1 - (distance / radius);
-        const normalizedHeight = coordinates[2];
+        const normalizedHeight = height;
 
         if (inArea) {
           if (!isActive) {
@@ -254,7 +259,7 @@ export default class SoundfieldExperience extends Experience {
       });
     }
 
-    this.broadcast('soloist', null, 'leap:simple:coordinates', coordinates, radius);
+    this.broadcast('soloist', null, 'leap:simple:coordinates', coordinates, radius, handId);
   }
 
   getDistance(point, center) {

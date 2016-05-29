@@ -10,7 +10,7 @@ class Leap extends Activity {
 		super('service:leap');
 
 		this.listeners = [];
-		this.leapPosition = [];
+		this.hand = [];
 	}
 
 	start() {
@@ -21,7 +21,7 @@ class Leap extends Activity {
 
 					const hand = frame.hands[i];
 
-					if (hand.type !== 'right') continue;
+					//if (hand.type !== 'right') continue;
 
 					const x = clip((hand.palmPosition[0] + 300) / 600);
 					const y = clip((hand.palmPosition[2] - 300) / 600 * -1);
@@ -30,11 +30,12 @@ class Leap extends Activity {
 					// const grab = clip(hand.grabStrength);
 					// const pinch = clip(hand.pinchStrength);
 
-					this.leapPosition[0] = x;
-					this.leapPosition[1] = 1 - y;
-					this.leapPosition[2] = z;
+					this.hand[0] = x;
+					this.hand[1] = 1 - y;
+					this.hand[2] = z;
+					this.hand[3] = (hand.type === 'right') ? 'r' : 'l';
 					// send
-					this.listeners.forEach((callback) => callback(this.leapPosition));
+					this.listeners.forEach((callback) => callback(this.hand));
 				}
 			}
 		});
@@ -46,4 +47,3 @@ class Leap extends Activity {
 }
 
 serviceManager.register('service:leap', Leap);
-
