@@ -80,6 +80,7 @@ export default class SoloistExperience extends soundworks.Experience {
     this.onPlayerRemove = this.onPlayerRemove.bind(this);
 
     this.handleLeapInput = this.handleLeapInput.bind(this);
+    this.handleLeapStop = this.handleLeapStop.bind(this);
   }
 
   /**
@@ -87,7 +88,7 @@ export default class SoloistExperience extends soundworks.Experience {
    */
   init() {
     this.area = this.sharedConfig.get('setup.area');
-    this.area.background = undefined;
+    // this.area.background = undefined;
     // initialize the view of the experience
     this.viewTemplate = viewTemplate;
     this.viewCtor = View;
@@ -119,16 +120,8 @@ export default class SoloistExperience extends soundworks.Experience {
     this.receive('player:add', this.onPlayerAdd);
     this.receive('player:remove', this.onPlayerRemove);
 
-    // // Add a `TouchSurface` to the area svg. The `TouchSurface` is a helper
-    // // which send normalized coordinates on touch events according to the given
-    // // `DOMElement`
-    // const surface = new TouchSurface(this.interactionsSpace.$svg);
-    // // setup listeners to the `TouchSurface` events
-    // surface.addListener('touchstart', this.onTouchStart);
-    // surface.addListener('touchmove', this.onTouchMove);
-    // surface.addListener('touchend', this.onTouchEnd);
-
-    this.receive('leap:simple:coordinates', this.handleLeapInput);
+    this.receive('leap:coordinates', this.handleLeapInput);
+    this.receive('leap:stop', this.handleLeapStop);
   }
 
   /**
@@ -136,6 +129,7 @@ export default class SoloistExperience extends soundworks.Experience {
    * @param {Object[]} playerList List of players.
    */
   onPlayerList(playerList) {
+    playerList.forEach((point) => point.radius = 3);
     this.playersSpace.addPoints(playerList);
   }
 
@@ -144,6 +138,7 @@ export default class SoloistExperience extends soundworks.Experience {
    * @param {Object} player Player.
    */
   onPlayerAdd(playerInfos) {
+    playerInfos.radius = 3;
     this.playersSpace.addPoint(playerInfos);
   }
 
@@ -155,12 +150,16 @@ export default class SoloistExperience extends soundworks.Experience {
     this.playersSpace.deletePoint(playerInfos.id);
   }
 
-  handleLeapInput(coordinates, radius, handType) {
-    console.log(handType)
+  handleLeapInput(coordinates, radius, handType = 1) {
+    // console.log(handType)
     if (Object.keys(this.renderedTouches).length === 0)
       this.createDrawingZone(handType, coordinates[0], coordinates[1], radius);
     else
       this.updateDrawingZone(handType, coordinates[0], coordinates[1], radius);
+  }
+
+  handleLeapStop() {
+    this.removeDrawingZone(1);
   }
 
   /**
@@ -237,10 +236,13 @@ export default class SoloistExperience extends soundworks.Experience {
 
     // remove feedback point
     const point = this.renderedTouches[id];
-    this.interactionsSpace.deletePoint(point.id);
-    // destroy references to this particular touch event
-    delete this.touches[id];
-    delete this.renderedTouches[id];
+
+    if (point) {
+      this.interactionsSpace.deletePoint(point.id);
+      // destroy references to this particular touch event
+      delete this.touches[id];
+      delete this.renderedTouches[id];
+    }
   }
 
   /**

@@ -52,20 +52,18 @@ export default class Synth {
     this.hasStarted = true;
   }
 
-  stop() {
+  stop(releaseTime) {
     const now = audioContext.currentTime;
     const { env, engine } = this.engines[this.currentIndex];
-    const release = 5 + Math.random() * 5;
 
-    env.gain.cancelScheduledValues(now);
-    env.gain.setValueAtTime(env.gain.value, now);
-    env.gain.linearRampToValueAtTime(0.00001, now + release);
+    this.output.gain.cancelScheduledValues(now);
+    this.output.gain.setValueAtTime(this.output.gain.value, now);
+    this.output.gain.linearRampToValueAtTime(0, now + releaseTime);
 
     setTimeout(() => {
-      this.scheduler.remove(engine);
-    }, (release + 0.5) * 1000);
-
-    return release;
+      if (this.scheduler.has(engine))
+        this.scheduler.remove(engine);
+    }, (releaseTime + 0.5) * 1000);
   }
 
   setCrossFadeDuration(value) {

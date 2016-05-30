@@ -72,6 +72,8 @@ export default class SoundfieldExperience extends Experience {
   }
 
   exit(client) {
+    super.exit(client);
+
     if (client.type === 'player')
       this.onPlayerExit(client);
 
@@ -215,24 +217,25 @@ export default class SoundfieldExperience extends Experience {
   }
 
   onInputChange(hand) {
-
-    let radius = this.inputRadius;
-
-    const coordinates = [hand[0], hand[1], hand[2]];
-    const height = coordinates[2];
-    const handId = hand[3];
     const activePlayers = this.activePlayers;
-    const players = new Set(this.players.keys());
-
-    radius *= height * this.areaMaxFactor;
 
     // if coordinates are empty, stop all players, else defines if a client
     // should be sent a `start` or `stop` message according to its previous
     // state and if it is or not in an zone that is excited by the soloist.
-    if (Object.keys(coordinates).length === 0) {
+    if (hand === false) {
       activePlayers.forEach((player) => this.send(player, 'stop'));
       activePlayers.clear();
+      this.broadcast('soloist', null, 'leap:stop');
     } else {
+      let radius = this.inputRadius;
+
+      const coordinates = [hand[0], hand[1], hand[2]];
+      const height = coordinates[2];
+      // const handId = hand[3];
+      const players = new Set(this.players.keys());
+
+      radius *= height * this.areaMaxFactor;
+
       players.forEach((player) => {
         let inArea = false;
         const isActive = activePlayers.has(player);
@@ -259,9 +262,9 @@ export default class SoundfieldExperience extends Experience {
           activePlayers.delete(player);
         }
       });
-    }
 
-    this.broadcast('soloist', null, 'leap:simple:coordinates', coordinates, radius, handId);
+      this.broadcast('soloist', null, 'leap:coordinates', coordinates, radius/*, handId*/);
+    }
   }
 
   getDistance(point, center) {

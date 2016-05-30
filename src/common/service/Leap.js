@@ -21,7 +21,7 @@ class Leap extends Activity {
 
 					const hand = frame.hands[i];
 
-					//if (hand.type !== 'right') continue;
+					if (hand.type !== 'right') continue;
 
 					const x = clip((hand.palmPosition[0] + 300) / 600);
 					const y = clip((hand.palmPosition[2] - 300) / 600 * -1);
@@ -37,6 +37,9 @@ class Leap extends Activity {
 					// send
 					this.listeners.forEach((callback) => callback(this.hand));
 				}
+			} else {
+				// send
+					this.listeners.forEach((callback) => callback(false));
 			}
 		});
 	}

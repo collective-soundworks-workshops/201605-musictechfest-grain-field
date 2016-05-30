@@ -3,15 +3,19 @@ import Synth from './Synth';
 import BeatSynth from './BeatSynth';
 import MovingAverage from './MovingAverage';
 import throttle from 'lodash.throttle';
+import Renderer from './Renderer';
 
 
 // html template used by `View` of the `PlayerExperience`
 const template = `
-  <div class="section-top"></div>
-  <div class="section-center flex-center">
-    <p class="big"><%= center %></p>
+  <canvas class="background"></canvas>
+  <div class="foreground">
+    <div class="section-top"></div>
+    <div class="section-center flex-center">
+      <p class="big"><%= center %></p>
+    </div>
+    <div class="section-bottom"></div>
   </div>
-  <div class="section-bottom"></div>
 `;
 
 
@@ -68,10 +72,13 @@ export default class PlayerExperience extends soundworks.Experience {
     // bind methods to the instance to keep a safe `this` in callbacks
     this.onStartMessage = this.onStartMessage.bind(this);
     this.onEndPerformanceMessage = this.onEndPerformanceMessage.bind(this);
+
+    this.onStartMessage = this.onStartMessage.bind(this);
+    this.onStopMessage = this.onStopMessage.bind(this);
     this.onDistanceMessage = this.onDistanceMessage.bind(this);
-    // this.onHeightMessage = this.onHeightMessage.bind(this);
+
     this.onLoadFileMessage = this.onLoadFileMessage.bind(this);
-    this.processAccelerationData = throttle(this.processAccelerationData.bind(this), 50);
+    this.processAccelerationData = throttle(this.processAccelerationData.bind(this), 100);
   }
 
   /**
@@ -86,9 +93,9 @@ export default class PlayerExperience extends soundworks.Experience {
     this.beatSynth = new BeatSynth(this.sync, this.sharedConfig.get('bpm'), this.loader.buffers[0], this.loader.buffers[1]);
 
     // configure and instanciate the view of the experience
-    this.viewContent = { center: 'Listen!' };
+    this.viewContent = { center: 'Listen (and tilt)!' };
     this.viewTemplate = template;
-    this.viewCtor = soundworks.SegmentedView;
+    this.viewCtor = soundworks.CanvasView;
     this.view = this.createView();
 
     this.currentColorIndex = null;
@@ -96,6 +103,8 @@ export default class PlayerExperience extends soundworks.Experience {
 
     this.positionFilter = new MovingAverage(4);
     this.cutoffFilter = new MovingAverage(8);
+
+    this.renderer = new Renderer();
   }
 
   /**
@@ -114,7 +123,6 @@ export default class PlayerExperience extends soundworks.Experience {
     this.receive('start', this.onStartMessage);
     this.receive('stop', this.onStopMessage);
     this.receive('distance', this.onDistanceMessage);
-    // this.receive('height', this.onHeightMessage);
     this.receive('load:file', this.onLoadFileMessage);
 
     this.sharedParams.addParamListener('periodAbs', (value) => {
@@ -141,8 +149,8 @@ export default class PlayerExperience extends soundworks.Experience {
     this.motionInput.addListener('accelerationIncludingGravity', this.processAccelerationData);
 
     // @todo - move this in `onStartMessage`
-    this.syncScheduler.add(this.beatSynth);
-    this.beatSynth.setGain(1);
+    // this.syncScheduler.add(this.beatSynth);
+    // this.beatSynth.setGain(1);
   }
 
   processAccelerationData(data) {
@@ -150,7 +158,7 @@ export default class PlayerExperience extends soundworks.Experience {
     const pitch = -2 * Math.atan(acc.y / Math.sqrt(acc.z * acc.z + acc.x * acc.x)) / Math.PI;
     const roll = -2 * Math.atan(acc.x / Math.sqrt(acc.y * acc.y + acc.z * acc.z)) / Math.PI;
 
-    let normRoll = 0.5 * roll;
+    let normRoll = roll;
     let normPitch = 1 + pitch;
 
     normRoll = this.positionFilter.process(normRoll);
@@ -163,6 +171,7 @@ export default class PlayerExperience extends soundworks.Experience {
     this.synth.setResamplingVarFromPitch(normPitch);
 
     this.beatSynth.setCutoff(normPitch);
+    this.renderer.setPosition(normRoll);
   }
 
   onLoadFileMessage(path) {
@@ -174,8 +183,10 @@ export default class PlayerExperience extends soundworks.Experience {
       const buffer = this.loader.get('file');
       this.synth.setBuffer(buffer);
 
-      if (!this.synth.hasStarted)
+      if (!this.synth.hasStarted) {
         this.synth.start();
+        this.view.addRenderer(this.renderer);
+      }
 
       // pick a new color
       let newColorIndex = Math.floor(Math.random() * colors.length);
@@ -191,27 +202,40 @@ export default class PlayerExperience extends soundworks.Experience {
   }
 
   onStartMessage(normalizedDistance) {
-    this.syncScheduler.add(this.beatSynth);
-    this.beatSynth.setGain(normalizedDistance);
+    if (!this.performanceEnded) {
+      this.hasBeat = true;
+      this.syncScheduler.add(this.beatSynth);
+      this.beatSynth.setGain(normalizedDistance);
+    }
   }
 
   onStopMessage() {
-    this.syncScheduler.remove(this.beatSynth);
+    if (!this.performanceEnded) {
+      this.hasBeat = false;
+      this.syncScheduler.remove(this.beatSynth);
+    }
   }
 
   onDistanceMessage(normalizedDistance) {
     this.beatSynth.setGain(normalizedDistance);
   }
 
-  // onHeightMessage(normalizedHeight) {
-
-  // }
-
   // end of the performance
   onEndPerformanceMessage() {
+    const releaseTime = 5 + Math.random() * 5;
     this.performanceEnded = true;
-    const releaseTime = this.synth.stop();
+    this.synth.stop(releaseTime);
+    this.beatSynth.stop(releaseTime);
     this.view.$el.style.transition = `background-color ${releaseTime}s`;
     this.view.$el.style.backgroundColor = 'transparent';
+
+    // remove beatSynth from sync scheduler
+    setTimeout(() => {
+      this.view.content.center = 'Thanks!';
+      this.view.render('.section-center');
+
+      if (this.hasBeat)
+        this.syncScheduler.remove(this.beatSynth);
+    }, (releaseTime + 0.5) * 1000);
   }
 }

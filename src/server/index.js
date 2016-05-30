@@ -20,7 +20,7 @@ class ConductorExperience extends soundworks.Experience {
     // params for granular engine
     this.sharedParams.addNumber('periodAbs', 'periodAbs', 0.02, 0.2, 0.001, 0.05, 'player');
     this.sharedParams.addNumber('durationAbs', 'durationAbs', 0.01, 0.5, 0.001, 0.2, 'player');
-    this.sharedParams.addNumber('positionVar', 'positionVar', 0.01, 0.5, 0.001, 0.2, 'player');
+    this.sharedParams.addNumber('positionVar', 'positionVar', 0.01, 0.5, 0.001, 0.02, 'player');
     this.sharedParams.addNumber('gainMult', 'gainMult', 1, 100, 0.1, 20, 'player');
   }
 }
@@ -46,7 +46,7 @@ const resamplingVarMax = 1200;
 // initialize the server with configuration informations
 soundworks.server.init({
   setup,
-  appName: 'MTF Grainer',
+  appName: 'MTF Grain Field',
   midiController,
   recordPeriod,
   recordDuration,

@@ -51,8 +51,16 @@ export default class BeatSynth extends audio.TimeEngine {
     this.whiteNoiseBuffer = createBufferSource();
   }
 
+  stop(releaseTime) {
+    const now = audioContext.currentTime;
+
+    this.output.gain.cancelScheduledValues(now);
+    this.output.gain.setValueAtTime(this.output.gain.value, now);
+    this.output.gain.linearRampToValueAtTime(0, now + releaseTime);
+  }
+
   setGain(gain) {
-    gain *= this.gainMultiplier * 2;
+    gain *= this.gainMultiplier;
     const now = audioContext.currentTime;
     this.output.gain.cancelScheduledValues(now);
     this.output.gain.setValueAtTime(this.output.gain.value, now);
@@ -73,24 +81,15 @@ export default class BeatSynth extends audio.TimeEngine {
     if (Math.random() <= 0.3) return;
 
     const buffer = this.buffers[bufferId];
-    // const buffer = this.whiteNoiseBuffer;
     const clickAttack = this.clickAttack;
     const clickRelease = this.clickRelease;
-    const env = audioContext.createGain();
+    const src = audioContext.createBufferSource();
 
     if (bufferId === 'hh')
-      env.connect(this.lowpass);
+      src.connect(this.lowpass);
     else
-      env.connect(this.output);
+      src.connect(this.output);
 
-    // env.gain.value = 0.0;
-    // env.gain.setValueAtTime(0, time);
-    // env.gain.linearRampToValueAtTime(1.0, time + clickAttack);
-    // env.gain.exponentialRampToValueAtTime(0.0000001, time + clickAttack + clickRelease);
-    // env.gain.setValueAtTime(0, time);
-
-    const src = audioContext.createBufferSource();
-    src.connect(env);
     src.buffer = buffer;
     src.start(time);
     src.stop(time + clickAttack + clickRelease);
