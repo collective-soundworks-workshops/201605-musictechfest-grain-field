@@ -25,7 +25,7 @@
     "leapjs": "^0.6.4",
     "lodash.throttle": "^4.0.1",
     "midi": "^0.9.4",
-    "soundworks": "collective-soundworks/soundworks.git#v1.1.0",
+    "soundworks": "collective-soundworks/soundworks.git#v1.1.1",
     "source-map-support": "^0.4.0"
   },
   "devDependencies": {
