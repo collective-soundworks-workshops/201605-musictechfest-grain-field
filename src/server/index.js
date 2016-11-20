@@ -5,7 +5,7 @@ import * as soundworks from 'soundworks/server';
 import SoundfieldExperience from './SoundfieldExperience';
 import ConductorExperience from './ConductorExperience';
 // import leap service
-import '../common/service/Leap';
+import '../shared/service/Leap';
 
 import defaultConfig from './config/default';
 
